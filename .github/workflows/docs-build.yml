@@ -1,0 +1,43 @@
+name: Documentation Build
+
+on:
+  push:
+    branches:
+      - main # Or your primary branch
+    paths:
+      - 'website/**'
+  repository_dispatch: # This is key for being triggered by child repos
+    types: [docs-update]
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  build-docusaurus:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive' # Important for when we add submodules
+          # token: ${{ secrets.GITHUB_TOKEN }} # Not strictly needed for checkout only on public repos, but good practice
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Or your preferred Node.js LTS version >= 18
+          cache: 'npm'
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: ./website
+
+      - name: Build Documentation
+        run: npm run build
+        working-directory: ./website
+
+      # We will add deployment steps here later
+      # - name: Deploy to GitHub Pages
+      #   uses: peaceiris/actions-gh-pages@v3
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: ./website/build 

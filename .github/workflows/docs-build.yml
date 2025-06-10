@@ -29,39 +29,90 @@ jobs:
           CHILD_REPO_COMMIT: ${{ github.event.client_payload.commit }}
           PARENT_REPO_TOKEN: ${{ secrets.SUBMODULE_ACCESS_TOKEN }} # Re-using token with repo scope for push
         run: |
-          echo "Received repository_dispatch from: $CHILD_REPO_FULL_NAME for commit: $CHILD_REPO_COMMIT"
-          SUBMODULE_NAME=$(basename "$CHILD_REPO_FULL_NAME") # Extracts 'hostelworld-ticket-wizard'
+          set -e # Exit immediately if a command exits with a non-zero status.
+
+          echo "Received repository_dispatch for repo: $CHILD_REPO_FULL_NAME at commit: $CHILD_REPO_COMMIT"
+          SUBMODULE_NAME=$(basename "$CHILD_REPO_FULL_NAME")
           SUBMODULE_PATH="website/docs/$SUBMODULE_NAME"
-          echo "Attempting to update submodule: $SUBMODULE_PATH"
+          # Standard HTTPS URL for the submodule
+          SUBMODULE_REPO_URL="https://github.com/$CHILD_REPO_FULL_NAME.git"
 
-          if [ ! -d "$SUBMODULE_PATH" ]; then
-            echo "Error: Submodule path $SUBMODULE_PATH does not exist."
-            exit 1
-          fi
+          echo "Managing submodule: $SUBMODULE_NAME at path: $SUBMODULE_PATH from URL: $SUBMODULE_REPO_URL"
 
-          cd "$SUBMODULE_PATH"
-          git fetch origin
-          echo "Checking out commit $CHILD_REPO_COMMIT in submodule $SUBMODULE_NAME"
-          git checkout "$CHILD_REPO_COMMIT"
-          cd - # Back to hw-docs root
-
-          echo "Configuring git user for commit"
+          # Configure git user
+          echo "Configuring git user for all operations"
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "actions-bot@github.com"
           
-          echo "Adding updated submodule $SUBMODULE_PATH to staging"
-          git add "$SUBMODULE_PATH"
+          # Configure git to use PARENT_REPO_TOKEN for all github.com HTTPS operations
+          # This avoids embedding the token in the .gitmodules file
+          echo "Configuring Git to use token for HTTPS authentication with github.com"
+          git config --global url."https://x-access-token:${PARENT_REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
+          # Clean up any potentially conflicting old credential helper settings
+          git config --global --unset-all credential.helper || true
+          rm -f ~/.git-credentials
 
-          if git diff --staged --quiet; then
-            echo "No changes to submodule $SUBMODULE_PATH. It might already be up to date."
+
+          if [ -d "$SUBMODULE_PATH/.git" ]; then
+            echo "Submodule $SUBMODULE_NAME found at $SUBMODULE_PATH. Updating existing submodule."
+            cd "$SUBMODULE_PATH"
+            echo "Fetching all updates (branches and tags) for submodule $SUBMODULE_NAME..."
+            git fetch origin --tags "+refs/heads/*:refs/remotes/origin/*" # Fetch all branches and tags
+            
+            echo "Checking out commit $CHILD_REPO_COMMIT in submodule $SUBMODULE_NAME"
+            if ! git checkout "$CHILD_REPO_COMMIT"; then
+                echo "Critical Error: Failed to checkout commit $CHILD_REPO_COMMIT in submodule $SUBMODULE_NAME after full fetch."
+                exit 1
+            fi
+            cd - # Back to hw-docs root
           else
-            echo "Committing submodule update for $SUBMODULE_NAME"
+            echo "Submodule path $SUBMODULE_PATH does not exist as a valid git repository."
+            echo "Attempting to add or re-initialize $SUBMODULE_NAME."
+
+            if [ -d "$SUBMODULE_PATH" ]; then
+                echo "Warning: Path $SUBMODULE_PATH exists but is not a .git repo. Removing it before adding submodule."
+                rm -rf "$SUBMODULE_PATH"
+            fi
+            
+            # Ensure the parent directory for submodules exists
+            mkdir -p "$(dirname "$SUBMODULE_PATH")"
+
+            echo "Adding new submodule $SUBMODULE_NAME from $SUBMODULE_REPO_URL to $SUBMODULE_PATH"
+            # Use the plain HTTPS URL; authentication is handled by the global git config
+            if ! git submodule add --force "$SUBMODULE_REPO_URL" "$SUBMODULE_PATH"; then
+                echo "Critical Error: Failed to add submodule $SUBMODULE_NAME using 'git submodule add'."
+                exit 1
+            fi
+            # 'git submodule add' should handle checkout of default branch. We need to go to the specific commit.
+            echo "Successfully added submodule $SUBMODULE_NAME. Now checking out specific commit."
+            cd "$SUBMODULE_PATH"
+            echo "Fetching all updates (branches and tags) for newly added submodule $SUBMODULE_NAME..."
+            git fetch origin --tags "+refs/heads/*:refs/remotes/origin/*"
+
+            echo "Checking out commit $CHILD_REPO_COMMIT in submodule $SUBMODULE_NAME"
+            if ! git checkout "$CHILD_REPO_COMMIT"; then
+                echo "Critical Error: Failed to checkout commit $CHILD_REPO_COMMIT in newly added submodule $SUBMODULE_NAME."
+                exit 1
+            fi
+            cd - # Back to hw-docs root
+            echo "Staging .gitmodules as it was modified by 'git submodule add'."
+            git add .gitmodules # Explicitly stage .gitmodules
+          fi
+          
+          echo "Adding updated submodule path $SUBMODULE_PATH to staging area."
+          git add "$SUBMODULE_PATH" # Stages the submodule's new commit hash and its directory if newly added
+          
+          if git diff --staged --quiet; then
+            echo "No changes to submodule $SUBMODULE_PATH (and .gitmodules if relevant). Workspace clean."
+          else
+            echo "Committing submodule update for $SUBMODULE_NAME."
+            # Using the original commit message style
             git commit -m "Update docs from $SUBMODULE_NAME to commit ${CHILD_REPO_COMMIT:0:7}"
-            echo "Pushing submodule update to origin main"
-            # Use the token for push authentication
+            echo "Pushing submodule update to origin main."
+            # The push URL already correctly uses the PARENT_REPO_TOKEN from the original script
             git push https://x-access-token:$PARENT_REPO_TOKEN@github.com/$GITHUB_REPOSITORY.git HEAD:main
           fi
-          echo "Submodule update process finished."
+          echo "Submodule update process finished successfully."
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

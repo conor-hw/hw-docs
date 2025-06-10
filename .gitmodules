@@ -1,0 +1,3 @@
+[submodule "website/docs/hostelworld-ticket-wizard"]
+	path = website/docs/hostelworld-ticket-wizard
+	url = https://github.com/conor-hw/hostelworld-ticket-wizard.git

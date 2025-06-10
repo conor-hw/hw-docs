@@ -6,6 +6,8 @@ on:
       - main # Or your primary branch
     paths:
       - 'website/**'
+      - '.gitmodules' # Also trigger on submodule pointer changes
+      - '.github/workflows/docs-build.yml' # Trigger if workflow itself changes
   repository_dispatch: # This is key for being triggered by child repos
     types: [docs-update]
   workflow_dispatch: # Allows manual triggering
@@ -17,8 +19,49 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive' # Important for when we add submodules
-          token: ${{ secrets.SUBMODULE_ACCESS_TOKEN }} # MODIFIED: Use the new PAT
+          submodules: 'recursive' # Checks out submodules to their currently committed state in hw-docs
+          token: ${{ secrets.SUBMODULE_ACCESS_TOKEN }} # For accessing private submodules and pushing to hw-docs
+
+      - name: Update Submodule and Push Changes # Only run on repository_dispatch
+        if: github.event_name == 'repository_dispatch'
+        env:
+          CHILD_REPO_FULL_NAME: ${{ github.event.client_payload.repository }} # e.g. conor-hw/hostelworld-ticket-wizard
+          CHILD_REPO_COMMIT: ${{ github.event.client_payload.commit }}
+          PARENT_REPO_TOKEN: ${{ secrets.SUBMODULE_ACCESS_TOKEN }} # Re-using token with repo scope for push
+        run: |
+          echo "Received repository_dispatch from: $CHILD_REPO_FULL_NAME for commit: $CHILD_REPO_COMMIT"
+          SUBMODULE_NAME=$(basename "$CHILD_REPO_FULL_NAME") # Extracts 'hostelworld-ticket-wizard'
+          SUBMODULE_PATH="website/docs/$SUBMODULE_NAME"
+          echo "Attempting to update submodule: $SUBMODULE_PATH"
+
+          if [ ! -d "$SUBMODULE_PATH" ]; then
+            echo "Error: Submodule path $SUBMODULE_PATH does not exist."
+            exit 1
+          fi
+
+          cd "$SUBMODULE_PATH"
+          git fetch origin
+          echo "Checking out commit $CHILD_REPO_COMMIT in submodule $SUBMODULE_NAME"
+          git checkout "$CHILD_REPO_COMMIT"
+          cd - # Back to hw-docs root
+
+          echo "Configuring git user for commit"
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "actions-bot@github.com"
+          
+          echo "Adding updated submodule $SUBMODULE_PATH to staging"
+          git add "$SUBMODULE_PATH"
+
+          if git diff --staged --quiet; then
+            echo "No changes to submodule $SUBMODULE_PATH. It might already be up to date."
+          else
+            echo "Committing submodule update for $SUBMODULE_NAME"
+            git commit -m "Update docs from $SUBMODULE_NAME to commit ${CHILD_REPO_COMMIT:0:7}"
+            echo "Pushing submodule update to origin main"
+            # Use the token for push authentication
+            git push https://x-access-token:$PARENT_REPO_TOKEN@github.com/$GITHUB_REPOSITORY.git HEAD:main
+          fi
+          echo "Submodule update process finished."
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

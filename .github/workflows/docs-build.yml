@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'recursive' # Important for when we add submodules
-          # token: ${{ secrets.GITHUB_TOKEN }} # Not strictly needed for checkout only on public repos, but good practice
+          token: ${{ secrets.SUBMODULE_ACCESS_TOKEN }} # MODIFIED: Use the new PAT
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

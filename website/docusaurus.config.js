@@ -119,7 +119,7 @@ const config = {
           },
           {
             type: 'doc',
-            docId: 'introduction',
+            docId: 'project-overview',
             position: 'left',
             label: 'Ticket Wizard',
             docsPluginId: 'ticketWizard',
@@ -156,7 +156,7 @@ const config = {
             items: [
               {
                 label: 'Ticket Wizard',
-                to: '/ticket-wizard/introduction',
+                to: '/ticket-wizard/project-overview',
               },
               {
                 label: 'Nuxt Project',

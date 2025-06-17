@@ -97,6 +97,16 @@ const config = {
           `https://github.com/conor-hw/nuxt-project/edit/main/hw-docs/${docPath}`,
       },
     ],
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'nxNestProject',
+        path: 'docs/nx-nest-project/hw-docs',
+        routeBasePath: 'nx-nest-project',
+        editUrl: ({ docPath }) =>
+          `https://github.com/conor-hw/nx-nest-project/edit/main/hw-docs/${docPath}`,
+      },
+    ],
   ],
 
   themeConfig:
@@ -131,6 +141,13 @@ const config = {
             label: 'Nuxt Project',
             docsPluginId: 'nuxtProject',
           },
+          {
+            type: 'doc',
+            docId: 'introduction',
+            position: 'left',
+            label: 'NX Nest Project',
+            docsPluginId: 'nxNestProject',
+          },
           {to: '/blog', label: 'Blog', position: 'left'},
           {
             href: 'https://github.com/conor-hw/hw-docs',
@@ -161,6 +178,10 @@ const config = {
               {
                 label: 'Nuxt Project',
                 to: '/nuxt-project/introduction',
+              },
+              {
+                label: 'NX Nest Project',
+                to: '/nx-nest-project/introduction',
               },
             ],
           },

@@ -4,3 +4,6 @@
 [submodule "website/docs/nuxt-project"]
 	path = website/docs/nuxt-project
 	url = https://github.com/conor-hw/nuxt-project.git
+[submodule "website/docs/nx-nest-project"]
+	path = website/docs/nx-nest-project
+	url = https://github.com/conor-hw/nx-nest-project.git

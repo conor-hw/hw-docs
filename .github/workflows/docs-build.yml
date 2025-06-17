@@ -22,6 +22,17 @@ jobs:
           submodules: 'recursive' # Checks out submodules to their currently committed state in hw-docs
           token: ${{ secrets.SUBMODULE_ACCESS_TOKEN }} # For accessing private submodules and pushing to hw-docs
 
+      - name: Debug Submodule Status
+        run: |
+          echo "Listing submodules:"
+          git submodule status
+          echo "\nListing website/docs directory:"
+          ls -la website/docs/
+          echo "\nListing nx-nest-project directory:"
+          ls -la website/docs/nx-nest-project/
+          echo "\nListing nx-nest-project/hw-docs directory:"
+          ls -la website/docs/nx-nest-project/hw-docs/ || echo "hw-docs directory not found"
+
       - name: Update Submodule and Push Changes # Only run on repository_dispatch
         if: github.event_name == 'repository_dispatch'
         env:

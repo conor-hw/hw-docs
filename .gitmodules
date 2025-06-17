@@ -1,6 +1,3 @@
-[submodule "website/docs/hostelworld-ticket-wizard"]
-	path = website/docs/hostelworld-ticket-wizard
-	url = https://github.com/conor-hw/hostelworld-ticket-wizard.git
 [submodule "website/docs/nuxt-project"]
 	path = website/docs/nuxt-project
 	url = https://github.com/conor-hw/nuxt-project.git

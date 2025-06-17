@@ -80,16 +80,6 @@ const config = {
     [
       '@docusaurus/plugin-content-docs',
       {
-        id: 'ticketWizard',
-        path: 'docs/hostelworld-ticket-wizard/hw-docs',
-        routeBasePath: 'ticket-wizard',
-        editUrl: ({ docPath }) =>
-          `https://github.com/conor-hw/hostelworld-ticket-wizard/edit/main/hw-docs/${docPath}`,
-      },
-    ],
-    [
-      '@docusaurus/plugin-content-docs',
-      {
         id: 'nuxtProject',
         path: 'docs/nuxt-project/hw-docs',
         routeBasePath: 'nuxt-project',
@@ -129,13 +119,6 @@ const config = {
           },
           {
             type: 'doc',
-            docId: 'project-overview',
-            position: 'left',
-            label: 'Ticket Wizard',
-            docsPluginId: 'ticketWizard',
-          },
-          {
-            type: 'doc',
             docId: 'introduction',
             position: 'left',
             label: 'Nuxt Project',
@@ -171,10 +154,6 @@ const config = {
           {
             title: 'Projects',
             items: [
-              {
-                label: 'Ticket Wizard',
-                to: '/ticket-wizard/project-overview',
-              },
               {
                 label: 'Nuxt Project',
                 to: '/nuxt-project/introduction',
